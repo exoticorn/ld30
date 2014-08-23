@@ -12,7 +12,11 @@ require(['game'], function(Game) {
   resizeScreen();
   window.addEventListener('resize', resizeScreen, false);
 
-  var gl = screen.getContext('webgl', {alpha: false});
+  var gl = screen.getContext('webgl', {alpha: false}) ||
+    screen.getContext('webgl') || screen.getContext('experimental-webgl');
+  if(!gl) {
+    alert('Failed to create WebGL context.');
+  }
   gl.clearColor(0.6, 0.6, 1, 1);
   gl.enable(gl.DEPTH_TEST);
   gl.enable(gl.CULL_FACE);
