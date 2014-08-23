@@ -1,28 +1,20 @@
 'use strict';
 /* global define */
 
-define(['gl-matrix-min', 'sphere'], function(M, Sphere) {
+define(['gl-matrix-min', 'sphere', 'camera'], function(M, Sphere, Camera) {
   return function(gl) {
-    var projection = M.mat4.create();
-    var view = M.mat4.create();
-    var viewProjection = M.mat4.create();
-    
+    var camera = new Camera();
+
     var sphere = new Sphere(gl);
     
     this.update = function(timeStep, input) {
-      
+      camera.update(timeStep, gl.drawingBufferWidth, gl.drawingBufferHeight);
     };
     
     this.render = function() {
-      var screenWidth = gl.drawingBufferWidth;
-      var screenHeight = gl.drawingBufferHeight;
-      M.mat4.perspective(projection, 40 / 128 * Math.PI, screenWidth / screenHeight, 0.1, 500);
-
-      M.mat4.lookAt(view, [-8, 0, 3], [0, 0, 0], [0, 0, 1]);
-      
-      M.mat4.mul(viewProjection, projection, view);
-      
-      sphere.render(viewProjection);
+      sphere.render(camera, [0, 0, 0], 1, [0.7, 0.4, 0.3]);
+      sphere.render(camera, [2, 0, 0], 0.75, [0.2, 0.6, 0.3]);
+      sphere.render(camera, [-2, 0, 0], 0.75, [0.3, 0.4, 0.8]);
     };
   };
 });
