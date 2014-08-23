@@ -1,13 +1,15 @@
 'use strict';
 /* global define */
 
-define(['gl-matrix-min', 'sphere', 'camera', 'level', 'player', 'collision'], function(M, Sphere, Camera, Level, Player, collision) {
+define(['gl-matrix-min', 'sphere', 'camera', 'level', 'player', 'collision', 'assetloader'],
+    function(M, Sphere, Camera, Level, Player, collision, AssetLoader) {
   return function(gl) {
     var camera = new Camera();
+    var assetLoader = new AssetLoader(gl);
 
     var sphere = new Sphere(gl);
     var level = new Level(gl);
-    var player = new Player(level, collision);
+    var player = new Player(level, collision, assetLoader);
     
     this.update = function(timeStep, input) {
       player.update(timeStep, input, camera);
@@ -15,7 +17,9 @@ define(['gl-matrix-min', 'sphere', 'camera', 'level', 'player', 'collision'], fu
     };
     
     this.render = function() {
-      player.render(camera, sphere);
+      if(!assetLoader.isLoading()) {
+        player.render(camera, sphere);
+      }
       level.render(camera);
     };
   };
