@@ -2,11 +2,15 @@
 /* global define */
 
 define(['gl-matrix-min'], function(M) {
-  return function(level, collision) {
+  return function(level, collision, assetLoader) {
     var SIZE = 0.5;
     this.pos = M.vec3.clone([0, 0, level.heightAt(0, 0) + SIZE]);
     var movement = M.vec3.create();
+    this.direction = M.vec2.clone([1, 0]);
+    var jumpTimer = 0;
     var collider = new collision.SphereCollider();
+    
+    var texture = assetLoader.loadTexture('player.png');
     
     var up = M.vec3.clone([0, 0, 1]);
     var inputRight = M.vec3.create();
@@ -19,14 +23,22 @@ define(['gl-matrix-min'], function(M) {
       M.vec3.cross(inputUp, up, inputRight);
       M.vec3.scale(localInput, inputRight, input.stickX);
       M.vec3.scaleAndAdd(localInput, localInput, inputUp, -input.stickY);
-      M.vec2.scale(movement, movement, 1 - timeStep * 10);
-      M.vec3.scaleAndAdd(movement, movement, localInput, timeStep * 70);
-      movement[2] -= timeStep * 20;
+      M.vec2.scale(movement, movement, 1 - timeStep * 4);
+      M.vec2.scaleAndAdd(this.direction, this.direction, localInput, timeStep * 10);
+      M.vec2.normalize(this.direction, this.direction);
+      M.vec3.scaleAndAdd(movement, movement, localInput, timeStep * 30);
+      movement[2] -= timeStep * 30;
       M.vec3.scaleAndAdd(this.pos, this.pos, movement, timeStep);
       var height = level.heightAt(this.pos[0], this.pos[1]) + SIZE;
       if(height > this.pos[2]) {
-        movement[2] = Math.max(movement[2], input.jump ? 15 : 0);
+        movement[2] = Math.max(movement[2], input.jump ? 10 : 0);
         this.pos[2] = height;
+        jumpTimer = 0.3;
+      } else if(input.jump && jumpTimer > 0) {
+        jumpTimer -= timeStep;
+        movement[2] += timeStep * 30;
+      } else {
+        jumpTimer = 0;
       }
       
       collider.init(this.pos, SIZE);
@@ -38,9 +50,8 @@ define(['gl-matrix-min'], function(M) {
       M.vec3.copy(this.pos, collider.position);
     };
     
-    var color = M.vec3.clone([0.3, 0.8, 0.3]);
     this.render = function(camera, sphere) {
-      sphere.render(camera, this.pos, SIZE, color);
+      sphere.render(camera, this.pos, SIZE, texture, this.direction);
     };
   };
 });
