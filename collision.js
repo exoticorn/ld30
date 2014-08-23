@@ -2,17 +2,17 @@
 /* global define */
 
 define(['gl-matrix-min'], function(M) {
-  var sphereCollider = function() {
+  var SphereCollider = function() {
     this.position = M.vec3.create();
     this.radius = 1;
   };
-  sphereCollider.prototype.init = function(position, radius) {
+  SphereCollider.prototype.init = function(position, radius) {
     M.vec3.copy(this.position, position);
     this.radius = radius;
   };
   var tClosestPoint = M.vec3.create();
   var tToCenter = M.vec3.create();
-  sphereCollider.prototype.collideBox = function(center, size) {
+  SphereCollider.prototype.collideBox = function(center, size) {
     M.vec3.sub(tClosestPoint, this.position, center);
     tClosestPoint[0] = Math.max(-size[0], Math.min(size[0], tClosestPoint[0]));
     tClosestPoint[1] = Math.max(-size[1], Math.min(size[1], tClosestPoint[1]));
@@ -27,6 +27,6 @@ define(['gl-matrix-min'], function(M) {
     }
   };
   return {
-    sphereCollider: sphereCollider
+    SphereCollider: SphereCollider
   };
 });

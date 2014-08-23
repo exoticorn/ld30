@@ -29,6 +29,13 @@ define(['gl-matrix-min', 'mesh', 'shader'], function(M, Mesh, Shader) {
       return c.center[2] + c.size[2];
     };
     
+    this.collide = function(collider) {
+      for(var i = 0; i < columns.length; ++i) {
+        var c = columns[i];
+        collider.collideBox(c.center, c.size);
+      }
+    };
+    
     var vertexData = new Float32Array(6 * 4 * (3+3+2));
     function makeFace(index, normal, u0, v0) {
       var right = M.vec3.create();
