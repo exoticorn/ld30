@@ -46,7 +46,7 @@ define(['shader', 'mesh'], function(Shader, Mesh) {
         'uniform vec4 posScale;',
         'void main() {',
         '  normal = pos;',
-        '  vec3 p = pos * posScale.w + posScale.xzy;',
+        '  vec3 p = pos * posScale.w + posScale.xyz;',
         '  toCam = normalize(camPos - p);',
         '  gl_Position = viewProjection * vec4(p, 1.0);',
         '}'
@@ -70,7 +70,7 @@ define(['shader', 'mesh'], function(Shader, Mesh) {
       shader.begin();
       gl.uniformMatrix4fv(shader.viewProjection, false, camera.viewProjection);
       gl.uniform3fv(shader.camPos, camera.position);
-      gl.uniform3f(shader.lightDir, 0.577, 0.577, -0.577);
+      gl.uniform3fv(shader.lightDir, camera.lightDir);
       gl.uniform4f(shader.posScale, pos[0], pos[1], pos[2], scale);
       gl.uniform3fv(shader.color, color);
       mesh.bind();
