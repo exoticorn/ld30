@@ -41,6 +41,7 @@ require(['game'], function(Game) {
       requestFrame();
       e.preventDefault();
     }
+    if(e.keyCode === 32) { input.jump = pressed; e.preventDefault(); }
     if(e.keyCode === 37) { input.left = pressed; e.preventDefault(); }
     if(e.keyCode === 39) { input.right = pressed; e.preventDefault(); }
     if(e.keyCode === 38) { input.up = pressed; e.preventDefault(); }
@@ -58,6 +59,8 @@ require(['game'], function(Game) {
     var now = Date.now();
     var timeStep = Math.min(0.2, (now - lastTime) / 1000);
     lastTime = now;
+    input.stickX = input.left ? -1 : (input.right ? 1 : 0);
+    input.stickY = input.up ? -1 : (input.down ? 1 : 0);
     game.update(timeStep, input);
     game.render();
     requestFrame();
