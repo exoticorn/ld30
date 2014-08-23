@@ -31,9 +31,13 @@ define(['gl-matrix-min'], function(M) {
       M.vec3.scaleAndAdd(this.pos, this.pos, movement, timeStep);
       var height = level.heightAt(this.pos[0], this.pos[1]) + SIZE;
       if(height > this.pos[2]) {
-        movement[2] = Math.max(movement[2], input.jump ? 10 : 0);
+        movement[2] = 0;
+        level.visit(this.pos[0], this.pos[1]);
+        if(input.jump) {
+          movement[2] += 10;
+          jumpTimer = 0.3;
+        }
         this.pos[2] = height;
-        jumpTimer = 0.3;
       } else if(input.jump && jumpTimer > 0) {
         jumpTimer -= timeStep;
         movement[2] += timeStep * 30;

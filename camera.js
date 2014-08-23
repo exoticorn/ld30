@@ -15,7 +15,7 @@ define(['gl-matrix-min'], function(M) {
     this.update = function(timeStep, width, height, level, player) {
       M.vec3.sub(fromPlayer, this.position, player.pos);
       M.vec2.scaleAndAdd(fromPlayer, fromPlayer, player.direction, timeStep * -5);
-      fromPlayer[2] = 4;
+      fromPlayer[2] = 2;
       M.vec2.scale(fromPlayer, fromPlayer, 5 / M.vec2.length(fromPlayer));
       M.vec3.add(this.position, player.pos, fromPlayer);
 

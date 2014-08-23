@@ -13,6 +13,7 @@ define(['gl-matrix-min', 'sphere', 'camera', 'level', 'player', 'collision', 'as
     
     this.update = function(timeStep, input) {
       player.update(timeStep, input, camera);
+      level.update(timeStep);
       camera.update(timeStep, gl.drawingBufferWidth, gl.drawingBufferHeight, level, player);
     };
     
