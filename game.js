@@ -1,15 +1,16 @@
 'use strict';
 /* global define */
 
-define(['gl-matrix-min', 'sphere', 'camera', 'level', 'player', 'collision', 'assetloader', 'skybox'],
-    function(M, Sphere, Camera, Level, Player, collision, AssetLoader, Sky) {
+define(['gl-matrix-min', 'sphere', 'camera', 'level', 'player', 'collision', 'assetloader', 'skybox', 'leveldata'],
+    function(M, Sphere, Camera, Level, Player, collision, AssetLoader, Sky, LevelData) {
   return function(gl) {
     var camera = new Camera();
     var assetLoader = new AssetLoader(gl);
 
     var sphere = new Sphere(gl);
-    var level = new Level(gl);
-    var player = new Player(level, collision, assetLoader);
+    var levelData = new LevelData(0);
+    var level = new Level(gl, levelData);
+    var player = new Player(level, collision, assetLoader, levelData.startPos);
     var sky = new Sky(gl);
     
     this.update = function(timeStep, input) {
