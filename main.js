@@ -2,6 +2,8 @@
 /* global require */
 
 require(['game'], function(Game) {
+  var ENABLE_MUSIC = true
+  
   var screen = document.getElementById('screen');
 
   function resizeScreen() {
@@ -25,6 +27,14 @@ require(['game'], function(Game) {
   var isPaused = false;
   var isRequesting = false;
   
+  if(ENABLE_MUSIC) {
+    var musicPlayer = document.createElement('audio');
+    musicPlayer.src = 'ld30.ogg';
+    musicPlayer.volume = 0.5;
+    musicPlayer.loop = true;
+    musicPlayer.play();
+  }
+  
   function requestFrame() {
     if(!isRequesting && !isPaused) {
       isRequesting = true;
@@ -38,6 +48,13 @@ require(['game'], function(Game) {
     var pressed = e.type === 'keydown';
     if(e.keyCode === 80 && pressed) {
       isPaused = !isPaused;
+      if(musicPlayer) {
+        if(isPaused) {
+          musicPlayer.pause();
+        } else {
+          musicPlayer.play();
+        }
+      }
       requestFrame();
       e.preventDefault();
     }
