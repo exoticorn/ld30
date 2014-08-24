@@ -6,6 +6,9 @@ define(function() {
     function makeShader(src, type) {
       var shader = gl.createShader(type);
       src = source.shared.concat(src).join('\n');
+      if(type == gl.FRAGMENT_SHADER) {
+        src = "precision mediump float;\n" + src;
+      }
       gl.shaderSource(shader, src);
       gl.compileShader(shader);
       if(!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
