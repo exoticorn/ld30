@@ -1,11 +1,12 @@
 'use strict';
 /* global define */
 
-define(['gl-matrix-min', 'mesh', 'shader'], function(M, Mesh, Shader) {
+define(['gl-matrix-min', 'mesh', 'shader', 'signalray'], function(M, Mesh, Shader, SignalRay) {
   var colors = {
-    'water': M.vec3.clone([0.2, 0.2, 0.7]),
-    'conductive': M.vec3.clone([1, 1, 1]),
-    'red': M.vec3.clone([1, 0.5, 0.5])
+    water: M.vec3.clone([0.2, 0.2, 0.7]),
+    conductive: M.vec3.clone([1, 1, 1]),
+    red: M.vec3.clone([1, 0.5, 0.5]),
+    blue: M.vec3.clone([0.5, 0.5, 1.0])
   };
   
   return function(gl, levelData) {
@@ -30,7 +31,8 @@ define(['gl-matrix-min', 'mesh', 'shader'], function(M, Mesh, Shader) {
     
     function Group() {
       this.columns = [];
-      this.state = 'neutral';
+      this.state = 'conductive';
+      this.connections = [];
       this.setState = function(state) {
         this.state = state;
         var color = colors[state];
@@ -55,12 +57,42 @@ define(['gl-matrix-min', 'mesh', 'shader'], function(M, Mesh, Shader) {
       markGroup(x, y-1, group, height);
       markGroup(x, y+1, group, height);
     }
+    var group;
     for(y = 0; y < levelData.height; ++y) {
       for(x = 0; x < levelData.width; ++x) {
         c = columns[x + y * levelData.width];
         if(c.type === 'conductive' && c.group === undefined) {
-          var group = new Group();
+          group = new Group();
           markGroup(x, y, group, c.height);
+        }
+      }
+    }
+    
+    var objects = [];
+    for(y = 0; y < levelData.height; ++y) {
+      for(x = 0; x < levelData.width; ++x) {
+        c = levelData.at(x, y);
+        var o = null;
+        switch(c.obj) {
+          case 'src-red':
+            o = { type: 'src', color: 'red' };
+            break;
+          case 'src-blue':
+            o = { type: 'src', color: 'blue' };
+            break;
+          case 'dst-red':
+            o = { type: 'dst', color: 'red' };
+            break;
+        }
+        if(o) {
+          c = columns[x + y * levelData.width];
+          o.pos = M.vec3.clone([c.center[0], c.center[1], c.center[2] + c.size[2]]);
+          objects.push(o);
+          if(o.type === 'src') {
+            group = columns[x + y * levelData.width].group;
+            group.src = o.color;
+            group.setState(o.color);
+          }
         }
       }
     }
@@ -89,18 +121,25 @@ define(['gl-matrix-min', 'mesh', 'shader'], function(M, Mesh, Shader) {
     var connections = [];
     var lastColumn = null;
     
+    function clearConnections(group) {
+      for(var i = 0, l = group.connections.length; i < l; ++i) {
+        clearConnections(group.connections[i]);
+      }
+      group.connections = [];
+      connections = connections.filter(function(c) { return c.to.group !== group; });
+      group.setState('conductive');
+    }
+    
     this.visit = function(x, y) {
       var c = columnAt(x, y);
-      if(c) {
-        if(c !== lastColumn) {
-          if(lastColumn && c.group && lastColumn.group && c.group !== lastColumn.group && c.group.state !== 'red') {
-            connections.push({from: lastColumn, to: c});
-          }
-          lastColumn = c;
+      if(c && c !== lastColumn) {
+        if(lastColumn && c.group && lastColumn.group && lastColumn.group.state !== 'conductive' && c.group.state !== lastColumn.group.state && !c.group.src) {
+          clearConnections(c.group);
+          connections.push({from: lastColumn, to: c, color: colors[lastColumn.group.state]});
+          lastColumn.group.connections.push(c.group);
+          c.group.setState(lastColumn.group.state);
         }
-        if(c.group) {
-          c.group.setState('red');
-        }
+        lastColumn = c;
       }
     };
 
@@ -108,6 +147,8 @@ define(['gl-matrix-min', 'mesh', 'shader'], function(M, Mesh, Shader) {
     this.update = function(timeStep) {
       stripesTime = (stripesTime - timeStep * 10) % (2 * Math.PI);
     };
+    
+    var signalRay = new SignalRay(gl);
     
     var vertexData = new Float32Array(6 * 4 * (3+3+2));
     function makeFace(index, normal, u0, v0) {
@@ -214,9 +255,10 @@ define(['gl-matrix-min', 'mesh', 'shader'], function(M, Mesh, Shader) {
         '}'
       ],
       fragment: [
+        'uniform vec3 color;',
         'void main() {',
         '  lowp float f = clamp(sin(stripes) + 0.5, 0.0, 1.0);',
-        '  gl_FragColor = vec4(0.3 * f + 0.2, 0.2 * f, 0.2 * f, (1.0 - f) * 0.4);',
+        '  gl_FragColor = vec4(color, (1.0 - f) * 0.4);',
         '}'
       ]
     });
@@ -251,11 +293,24 @@ define(['gl-matrix-min', 'mesh', 'shader'], function(M, Mesh, Shader) {
         var conn = connections[i];
         gl.uniform3f(connectionShader.from, conn.from.center[0], conn.from.center[1], conn.from.center[2] + conn.from.size[2]);
         gl.uniform3f(connectionShader.to, conn.to.center[0], conn.to.center[1], conn.to.center[2] + conn.to.size[2]);
+        gl.uniform3fv(connectionShader.color, conn.color);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 24);
       }
       gl.disable(gl.BLEND);
       gl.enable(gl.CULL_FACE);
       connectionShader.end();
+      
+      for(i = 0; i < objects.length; ++i) {
+        var o = objects[i];
+        switch(o.type) {
+          case 'src':
+            signalRay.render(camera, o.pos, colors[o.color], -stripesTime);
+            break;
+          case 'dst':
+            signalRay.render(camera, o.pos, colors[o.color], stripesTime);
+            break;
+        }
+      }
     };
   };
 });
