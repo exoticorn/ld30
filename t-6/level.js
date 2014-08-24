@@ -2,6 +2,7 @@
 /* global define */
 
 define(['gl-matrix-min', 'mesh', 'shader', 'signalray'], function(M, Mesh, Shader, SignalRay) {
+  //foo
   var colors = {
     water: M.vec3.clone([0.2, 0.2, 0.7]),
     conductive: M.vec3.clone([1, 1, 1]),
@@ -122,10 +123,12 @@ define(['gl-matrix-min', 'mesh', 'shader', 'signalray'], function(M, Mesh, Shade
     var lastColumn = null;
     
     function clearConnections(group) {
-      for(var i = 0, l = group.connections.length; i < l; ++i) {
-        clearConnections(group.connections[i]);
+      for(var i = 0; i < connections.length; ++i) {
+        if(connections[i].from.group === group) {
+          clearConnections(connections[i].to.group);
+          i = 0;
+        }
       }
-      group.connections = [];
       connections = connections.filter(function(c) { return c.to.group !== group; });
       group.setState('conductive');
     }
