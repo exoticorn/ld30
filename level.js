@@ -2,32 +2,76 @@
 /* global define */
 
 define(['gl-matrix-min', 'mesh', 'shader'], function(M, Mesh, Shader) {
-  return function(gl) {
+  var colors = {
+    'water': M.vec3.clone([0.2, 0.2, 0.7]),
+    'conductive': M.vec3.clone([1, 1, 1]),
+    'red': M.vec3.clone([1, 0.5, 0.5])
+  };
+  
+  return function(gl, levelData) {
     var Column = function(x, y, z, h) {
       this.center = M.vec3.clone([x, y, z]);
       this.size = M.vec3.clone([2, 2, h]);
       this.visited = false;
     };
     
-    var SIZE = 12;
-
     var columns = [];
-    var x, y;
-    for(y = 0; y < SIZE; ++y) {
-      for(x = 0; x < SIZE; ++x) {
-        var h1 = Math.floor(Math.random() * 10 + 2);
-        var h2 = Math.floor(Math.random() * 10 + 2);
-        columns.push(new Column(x * 4, y * 4, (h1 - h2) / 2, (h1 + h2) / 2));
+    var x, y, c;
+    for(y = 0; y < levelData.height; ++y) {
+      for(x = 0; x < levelData.width; ++x) {
+        c = levelData.at(x, y);
+        var column = new Column(x * 4, y * 4, 0, c.height * 2);
+        column.height = c.height;
+        column.type = c.type;
+        column.color = colors[c.type];
+        columns.push(column);
+      }
+    }
+    
+    function Group() {
+      this.columns = [];
+      this.state = 'neutral';
+      this.setState = function(state) {
+        this.state = state;
+        var color = colors[state];
+        for(var i = 0, l = this.columns.length; i < l; ++i) {
+          this.columns[i].color = color;
+        }
+      };
+    }
+    
+    function markGroup(x, y, group, height) {
+      if(x < 0 || x >= levelData.width || y < 0 || y >= levelData.height) {
+        return;
+      }
+      var c = columns[x + y * levelData.width];
+      if(c.height !== height || c.type != 'conductive' || c.group !== undefined) {
+        return;
+      }
+      c.group = group;
+      group.columns.push(c);
+      markGroup(x-1, y, group, height);
+      markGroup(x+1, y, group, height);
+      markGroup(x, y-1, group, height);
+      markGroup(x, y+1, group, height);
+    }
+    for(y = 0; y < levelData.height; ++y) {
+      for(x = 0; x < levelData.width; ++x) {
+        c = columns[x + y * levelData.width];
+        if(c.type === 'conductive' && c.group === undefined) {
+          var group = new Group();
+          markGroup(x, y, group, c.height);
+        }
       }
     }
     
     function columnAt(x, y) {
       x = (x + 2) / 4;
       y = (y + 2) / 4;
-      if(x < 0 || x >= SIZE || y < 0 || y >= SIZE) {
+      if(x < 0 || x >= levelData.width || y < 0 || y >= levelData.height) {
         return null;
       }
-      return columns[Math.floor(x) + Math.floor(y) * SIZE];
+      return columns[Math.floor(x) + Math.floor(y) * levelData.width];
     }
     
     this.heightAt = function(x, y) {
@@ -48,12 +92,14 @@ define(['gl-matrix-min', 'mesh', 'shader'], function(M, Mesh, Shader) {
     this.visit = function(x, y) {
       var c = columnAt(x, y);
       if(c) {
-        c.visited = true;
         if(c !== lastColumn) {
-          if(lastColumn) {
+          if(lastColumn && c.group && lastColumn.group && c.group !== lastColumn.group && c.group.state !== 'red') {
             connections.push({from: lastColumn, to: c});
           }
           lastColumn = c;
+        }
+        if(c.group) {
+          c.group.setState('red');
         }
       }
     };
@@ -187,11 +233,7 @@ define(['gl-matrix-min', 'mesh', 'shader'], function(M, Mesh, Shader) {
         var c = columns[i];
         gl.uniform3fv(shader.instancePos, c.center);
         gl.uniform3fv(shader.instanceScale, c.size);
-        if(c.visited) {
-          gl.uniform3f(shader.instanceColor, 0.8, 0.8, 0.3);
-        } else {
-          gl.uniform3f(shader.instanceColor, 1.0, 1.0, 1.0);
-        }
+        gl.uniform3fv(shader.instanceColor, c.color);
         gl.drawElements(gl.TRIANGLES, 36, gl.UNSIGNED_BYTE, 0);
       }
       shader.end();

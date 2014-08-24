@@ -2,9 +2,9 @@
 /* global define */
 
 define(['gl-matrix-min'], function(M) {
-  return function(level, collision, assetLoader) {
+  return function(level, collision, assetLoader, startPos) {
     var SIZE = 0.5;
-    this.pos = M.vec3.clone([0, 0, level.heightAt(0, 0) + SIZE]);
+    this.pos = M.vec3.clone([startPos[0], startPos[1], level.heightAt(startPos[0], startPos[1]) + SIZE]);
     var movement = M.vec3.create();
     this.direction = M.vec2.clone([1, 0]);
     var jumpTimer = 0;
@@ -27,7 +27,7 @@ define(['gl-matrix-min'], function(M) {
       M.vec2.scaleAndAdd(this.direction, this.direction, localInput, timeStep * 10);
       M.vec2.normalize(this.direction, this.direction);
       M.vec3.scaleAndAdd(movement, movement, localInput, timeStep * 30);
-      movement[2] -= timeStep * 30;
+      movement[2] -= timeStep * 40;
       M.vec3.scaleAndAdd(this.pos, this.pos, movement, timeStep);
       var height = level.heightAt(this.pos[0], this.pos[1]) + SIZE;
       if(height > this.pos[2]) {
@@ -40,7 +40,7 @@ define(['gl-matrix-min'], function(M) {
         this.pos[2] = height;
       } else if(input.jump && jumpTimer > 0) {
         jumpTimer -= timeStep;
-        movement[2] += timeStep * 30;
+        movement[2] += timeStep * 35;
       } else {
         jumpTimer = 0;
       }
