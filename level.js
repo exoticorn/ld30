@@ -2,15 +2,19 @@
 /* global define */
 
 define(['gl-matrix-min', 'mesh', 'shader', 'signalray'], function(M, Mesh, Shader, SignalRay) {
-  //foo
   var colors = {
     water: M.vec3.clone([0.2, 0.2, 0.7]),
     conductive: M.vec3.clone([1, 1, 1]),
     red: M.vec3.clone([1, 0.5, 0.5]),
-    blue: M.vec3.clone([0.5, 0.5, 1.0])
+    blue: M.vec3.clone([0.5, 0.5, 1.0]),
+    green: M.vec3.clone([0.5, 1.0, 0.5]),
+    neutral: M.vec3.clone([0.5, 0.5, 0.5])
   };
   
   return function(gl, levelData) {
+    this.dead = false;
+    this.finished = false;
+    
     var Column = function(x, y, z, h) {
       this.center = M.vec3.clone([x, y, z]);
       this.size = M.vec3.clone([2, 2, h]);
@@ -33,7 +37,6 @@ define(['gl-matrix-min', 'mesh', 'shader', 'signalray'], function(M, Mesh, Shade
     function Group() {
       this.columns = [];
       this.state = 'conductive';
-      this.connections = [];
       this.setState = function(state) {
         this.state = state;
         var color = colors[state];
@@ -81,8 +84,17 @@ define(['gl-matrix-min', 'mesh', 'shader', 'signalray'], function(M, Mesh, Shade
           case 'src-blue':
             o = { type: 'src', color: 'blue' };
             break;
+          case 'src-green':
+            o = { type: 'src', color: 'green' };
+            break;
           case 'dst-red':
             o = { type: 'dst', color: 'red' };
+            break;
+          case 'dst-blue':
+            o = { type: 'dst', color: 'blue' };
+            break;
+          case 'dst-green':
+            o = { type: 'dst', color: 'green' };
             break;
         }
         if(o) {
@@ -136,19 +148,39 @@ define(['gl-matrix-min', 'mesh', 'shader', 'signalray'], function(M, Mesh, Shade
     this.visit = function(x, y) {
       var c = columnAt(x, y);
       if(c && c !== lastColumn) {
-        if(lastColumn && c.group && lastColumn.group && lastColumn.group.state !== 'conductive' && c.group.state !== lastColumn.group.state && !c.group.src) {
-          clearConnections(c.group);
-          connections.push({from: lastColumn, to: c, color: colors[lastColumn.group.state]});
-          lastColumn.group.connections.push(c.group);
-          c.group.setState(lastColumn.group.state);
+        if(c.type === 'water') {
+          this.dead = true;
+        }
+        if(lastColumn && c.group && lastColumn.group) {
+          if(lastColumn.group.state !== 'conductive' && c.group.state !== lastColumn.group.state && !c.group.src) {
+            clearConnections(c.group);
+            connections.push({from: lastColumn, to: c, color: colors[lastColumn.group.state]});
+            c.group.setState(lastColumn.group.state);
+          } else if(lastColumn.group.state === 'conductive' && c.group.state !== 'conductive') {
+            connections.push({from: c, to: lastColumn, color: colors[c.group.state]});
+            lastColumn.group.setState(c.group.state);
+          }
         }
         lastColumn = c;
+        if(!c.group || c.group.state !== 'conductive') {
+          return c.color;
+        }
       }
     };
 
     var stripesTime = 0;
     this.update = function(timeStep) {
       stripesTime = (stripesTime - timeStep * 10) % (2 * Math.PI);
+      this.finished = true;
+      for(var i = 0; i < objects.length; ++i) {
+        var o = objects[i];
+        if(o.type === 'dst') {
+          var c = columnAt(o.pos[0], o.pos[1]);
+          if(c && c.group && c.group.state !== o.color) {
+            this.finished = false;
+          }
+        }
+      }
     };
     
     var signalRay = new SignalRay(gl);

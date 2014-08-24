@@ -62,25 +62,28 @@ define(['shader', 'mesh'], function(Shader, Mesh) {
         'precision mediump float;',
         'uniform vec3 lightDir;',
         'uniform sampler2D tex;',
+        'uniform vec3 color;',
         'void main() {',
-        '  lowp vec3 color = texture2D(tex, vUv).xyz;',
+        '  lowp vec4 texCol = texture2D(tex, vUv);',
+        '  lowp vec3 co = color * texCol.g * 1.5 + texCol.r;',
         '  vec3 n = normalize(normal);',
-        '  lowp vec3 c = max(0.0, dot(n, -lightDir)) * color;',
+        '  lowp vec3 c = max(0.0, dot(n, -lightDir)) * co;',
         '  lowp float p = max(0.0, dot(reflect(normalize(toCam), n), lightDir));',
         '  c += pow(p, 4.0) * vec3(0.5, 0.5, 0.3);',
-        '  c += color * 0.3;',
+        '  c += co * 0.3;',
         '  gl_FragColor = vec4(c, 1.0);',
         '}'
       ]
     });
     
-    this.render = function(camera, pos, scale, texture, direction) {
+    this.render = function(camera, pos, scale, texture, color, direction) {
       shader.begin();
       gl.uniformMatrix4fv(shader.viewProjection, false, camera.viewProjection);
       gl.uniform3fv(shader.camPos, camera.position);
       gl.uniform3fv(shader.lightDir, camera.lightDir);
       gl.uniform4f(shader.posScale, pos[0], pos[1], pos[2], scale);
       gl.uniform2fv(shader.direction, direction);
+      gl.uniform3fv(shader.color, color);
       gl.activeTexture(gl.TEXTURE0);
       gl.bindTexture(gl.TEXTURE_2D, texture);
       gl.uniform1i(shader.tex, 0);

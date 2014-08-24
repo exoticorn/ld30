@@ -2,7 +2,7 @@
 /* global require */
 
 require(['game'], function(Game) {
-  var ENABLE_MUSIC = true
+  var ENABLE_MUSIC = true;
   
   var screen = document.getElementById('screen');
 
@@ -78,6 +78,11 @@ require(['game'], function(Game) {
     lastTime = now;
     input.stickX = input.left ? -1 : (input.right ? 1 : 0);
     input.stickY = input.up ? -1 : (input.down ? 1 : 0);
+    var length = Math.sqrt(input.stickX * input.stickX + input.stickY * input.stickY);
+    if(length > 1) {
+      input.stickX /= length;
+      input.stickY /= length;
+    }
     game.update(timeStep, input);
     game.render();
     requestFrame();
