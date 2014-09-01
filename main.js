@@ -58,7 +58,7 @@ require(['game'], function(Game) {
       requestFrame();
       e.preventDefault();
     }
-    if(e.keyCode === 32) { input.jump = pressed; e.preventDefault(); }
+    if(e.keyCode === 32 || e.keyCode === 88) { input.jump = pressed; e.preventDefault(); }
     if(e.keyCode === 37) { input.left = pressed; e.preventDefault(); }
     if(e.keyCode === 39) { input.right = pressed; e.preventDefault(); }
     if(e.keyCode === 38) { input.up = pressed; e.preventDefault(); }
